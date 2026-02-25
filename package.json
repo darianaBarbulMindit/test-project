@@ -1,0 +1,9 @@
+{
+  "name": "test-project",
+  "private": true,
+  "scripts": {
+    "start": "npm --prefix table-app start",
+    "build": "npm --prefix table-app run build",
+    "test": "npm --prefix table-app test"
+  }
+}
