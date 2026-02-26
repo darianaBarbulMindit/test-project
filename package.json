@@ -5,5 +5,8 @@
     "start": "npm --prefix table-app start",
     "build": "npm --prefix table-app run build",
     "test": "npm --prefix table-app test"
+  },
+  "dependencies": {
+    "@databricks/sql": "^1.12.0"
   }
 }
