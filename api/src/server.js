@@ -1,7 +1,6 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
-const { DBSQLClient } = require('@databricks/sql');
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;
@@ -9,44 +8,24 @@ const HOST = '0.0.0.0';
 const webDistPath = path.resolve(__dirname, '../../table-app/dist/table-app/browser');
 const webIndexPath = path.join(webDistPath, 'index.html');
 
-async function fetchCurrentDatabricksUser() {
-  const host = process.env.DATABRICKS_SERVER_HOSTNAME;
-  const httpPath = process.env.DATABRICKS_HTTP_PATH;
-  const token = process.env.DATABRICKS_TOKEN;
+function getDatabricksHost() {
+  return process.env.DATABRICKS_SERVER_HOSTNAME || process.env.DATABRICKS_HOST || '';
+}
 
-  if (!host || !httpPath || !token) {
-    throw new Error(
-      'Missing Databricks settings: DATABRICKS_SERVER_HOSTNAME, DATABRICKS_HTTP_PATH, DATABRICKS_TOKEN'
-    );
-  }
-
-  const client = new DBSQLClient();
-  await client.connect({
-    host,
-    path: httpPath,
-    token
+async function fetchCurrentUserFromDatabricks(host, accessToken) {
+  const response = await fetch(`https://${host}/oidc/v1/userinfo`, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${accessToken}`
+    }
   });
 
-  const session = await client.openSession();
-
-  try {
-    const operation = await session.executeStatement(`
-      SELECT
-        current_user() AS current_user,
-        current_catalog() AS current_catalog,
-        current_schema() AS current_schema
-    `);
-
-    try {
-      const rows = await operation.fetchAll();
-      return rows[0] ?? null;
-    } finally {
-      await operation.close();
-    }
-  } finally {
-    await session.close();
-    await client.close();
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`Databricks userinfo request failed (${response.status}): ${body}`);
   }
+
+  return response.json();
 }
 
 app.get('/health', (req, res) => {
@@ -58,10 +37,34 @@ app.get('/api/hello', (req, res) => {
 });
 
 app.get('/api/databricks/current-user', async (req, res) => {
+  const forwardedUser = req.headers['x-forwarded-user'] || null;
+  const forwardedEmail = req.headers['x-forwarded-email'] || null;
+  const forwardedPreferredUsername = req.headers['x-forwarded-preferred-username'] || null;
+  const forwardedAccessToken = req.headers['x-forwarded-access-token'];
+  const host = getDatabricksHost();
+
   try {
-    const userInfo = await fetchCurrentDatabricksUser();
-    console.log('Databricks current user details:', userInfo);
-    res.json({ user: userInfo });
+    let userInfo = null;
+
+    if (host && typeof forwardedAccessToken === 'string' && forwardedAccessToken.length > 0) {
+      userInfo = await fetchCurrentUserFromDatabricks(host, forwardedAccessToken);
+    }
+
+    const payload = {
+      user: userInfo,
+      forwardedIdentity: {
+        user: forwardedUser,
+        email: forwardedEmail,
+        preferredUsername: forwardedPreferredUsername
+      },
+      mode:
+        userInfo !== null
+          ? 'obo_user_token'
+          : 'forwarded_headers_only'
+    };
+
+    console.log('Databricks current user details:', payload);
+    res.json(payload);
   } catch (error) {
     console.error('Databricks query failed:', error.message);
     res.status(500).json({ error: error.message });
