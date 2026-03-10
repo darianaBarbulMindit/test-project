@@ -48,3 +48,32 @@ td {
 tbody tr:last-child td {
   border-bottom: none;
 }
+
+.hello-button {
+  margin-top: 16px;
+  padding: 10px 14px;
+  border: 1px solid #2563eb;
+  border-radius: 8px;
+  background: #2563eb;
+  color: #ffffff;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.hello-button:hover {
+  background: #1d4ed8;
+}
+
+.response-message,
+.response-error {
+  margin: 12px 0 0;
+  font-weight: 600;
+}
+
+.response-message {
+  color: #166534;
+}
+
+.response-error {
+  color: #991b1b;
+}

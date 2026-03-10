@@ -24,4 +24,16 @@
       </tbody>
     </table>
   </div>
+
+  <button class="hello-button" type="button" (click)="getHelloMessage()">
+    Call Hello API
+  </button>
+
+  @if (helloMessage()) {
+    <p class="response-message">{{ helloMessage() }}</p>
+  }
+
+  @if (errorMessage()) {
+    <p class="response-error">{{ errorMessage() }}</p>
+  }
 </main>
