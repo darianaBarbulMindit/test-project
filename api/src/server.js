@@ -13,19 +13,21 @@ function getDatabricksHost() {
 }
 
 async function fetchCurrentUserFromDatabricks(host, accessToken) {
-  const response = await fetch(`https://${host}/oidc/v1/userinfo`, {
+  const endpointPath = '/api/2.0/preview/scim/v2/Me';
+  const response = await fetch(`https://${host}${endpointPath}`, {
     method: 'GET',
     headers: {
       Authorization: `Bearer ${accessToken}`
     }
   });
 
-  if (!response.ok) {
-    const body = await response.text();
-    throw new Error(`Databricks userinfo request failed (${response.status}): ${body}`);
+  if (response.ok) {
+    const payload = await response.json();
+    return { payload, source: endpointPath };
   }
 
-  return response.json();
+  const body = await response.text();
+  throw new Error(`Databricks user endpoint failed: ${endpointPath} -> ${response.status} ${body}`);
 }
 
 app.get('/health', (req, res) => {
@@ -43,32 +45,38 @@ app.get('/api/databricks/current-user', async (req, res) => {
   const forwardedAccessToken = req.headers['x-forwarded-access-token'];
   const host = getDatabricksHost();
 
-  try {
-    let userInfo = null;
+  let userInfo = null;
+  let userInfoSource = null;
+  let userInfoError = null;
 
-    if (host && typeof forwardedAccessToken === 'string' && forwardedAccessToken.length > 0) {
-      userInfo = await fetchCurrentUserFromDatabricks(host, forwardedAccessToken);
+  if (host && typeof forwardedAccessToken === 'string' && forwardedAccessToken.length > 0) {
+    try {
+      const result = await fetchCurrentUserFromDatabricks(host, forwardedAccessToken);
+      userInfo = result.payload;
+      userInfoSource = result.source;
+    } catch (error) {
+      userInfoError = error.message;
+      console.warn('Databricks user info lookup failed, falling back to forwarded headers:', error.message);
     }
-
-    const payload = {
-      user: userInfo,
-      forwardedIdentity: {
-        user: forwardedUser,
-        email: forwardedEmail,
-        preferredUsername: forwardedPreferredUsername
-      },
-      mode:
-        userInfo !== null
-          ? 'obo_user_token'
-          : 'forwarded_headers_only'
-    };
-
-    console.log('Databricks current user details:', payload);
-    res.json(payload);
-  } catch (error) {
-    console.error('Databricks query failed:', error.message);
-    res.status(500).json({ error: error.message });
   }
+
+  const payload = {
+    user: userInfo,
+    userInfoSource,
+    userInfoError,
+    forwardedIdentity: {
+      user: forwardedUser,
+      email: forwardedEmail,
+      preferredUsername: forwardedPreferredUsername
+    },
+    mode:
+      userInfo !== null
+        ? 'obo_user_token'
+        : 'forwarded_headers_only'
+  };
+
+  console.log('Databricks current user details:', payload);
+  res.json(payload);
 });
 
 if (fs.existsSync(webIndexPath)) {
