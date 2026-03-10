@@ -8,6 +8,14 @@ type UserRow = {
   email: string;
 };
 
+type DatabricksCurrentUserResponse = {
+  user: {
+    current_user?: string;
+    current_catalog?: string;
+    current_schema?: string;
+  } | null;
+};
+
 @Component({
   selector: 'app-root',
   imports: [],
@@ -34,6 +42,14 @@ export class App {
     this.http.get<{ message: string }>('/api/hello').subscribe({
       next: (response) => {
         this.helloMessage.set(response.message);
+        this.http.get<DatabricksCurrentUserResponse>('/api/databricks/current-user').subscribe({
+          next: (databricksResponse) => {
+            console.log('Databricks current user details:', databricksResponse.user);
+          },
+          error: (error) => {
+            console.error('Failed to fetch Databricks current user details:', error);
+          }
+        });
       },
       error: () => {
         this.helloMessage.set('');
