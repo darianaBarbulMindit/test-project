@@ -297,7 +297,7 @@ app.get('/api/databricks/unity-catalog/persons', async (req, res) => {
       return;
     }
 
-    const statement = `SELECT id, name, role, email FROM \`${catalog}\`.\`${schema}\`.\`Person\``;
+    const statement = `SELECT id, name, role, email FROM \`${catalog}\`.\`${schema}\`.\`person\``;
 
     const rows = await executeSqlStatement({
       host,

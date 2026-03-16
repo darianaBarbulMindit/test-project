@@ -49,7 +49,8 @@ export class App implements OnInit {
         this.users.set(response.rows);
         this.loading.set(false);
       },
-      error: () => {
+      error: (error: any) => {
+        console.log('Error loading persons from Databricks:', error);
         this.errorMessage.set('Could not load persons from Databricks.');
         this.loading.set(false);
       },
