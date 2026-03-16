@@ -1,0 +1,7 @@
+command: ['node', 'api/src/server.js']
+
+resources:
+  - name: warehouse
+    sql_warehouse:
+      id: 9da5dba0ac39cf71
+      permission: CAN_USE
