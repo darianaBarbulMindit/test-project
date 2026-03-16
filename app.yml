@@ -1,7 +1,12 @@
 command: ['node', 'api/src/server.js']
 
+env:
+  - name: DATABRICKS_WAREHOUSE_ID
+    valueFrom: warehouse.id
+
 resources:
   - name: warehouse
     sql_warehouse:
       id: 9da5dba0ac39cf71
-      permission: CAN_USE
+      permission: CAN_MANAGE
+      default: true

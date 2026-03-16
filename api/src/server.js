@@ -147,6 +147,15 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
+app.get('/api/debug/env', (_req, res) => {
+  const databricksEnv = Object.fromEntries(
+    Object.entries(process.env).filter(([key]) =>
+      key.toUpperCase().includes('DATABRICKS') || key.toUpperCase().includes('WAREHOUSE')
+    )
+  );
+  res.json(databricksEnv);
+});
+
 app.get('/api/hello', (req, res) => {
   res.json({ message: 'Hello world!' });
 });
