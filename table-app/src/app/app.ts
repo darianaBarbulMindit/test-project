@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 
 type UserRow = {
@@ -16,26 +16,45 @@ type DatabricksCurrentUserResponse = {
   } | null;
 };
 
+type PersonsResponse = {
+  rows: UserRow[];
+  rowCount: number;
+};
+
 @Component({
   selector: 'app-root',
   imports: [],
   templateUrl: './app.html',
   styleUrl: './app.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class App {
+export class App implements OnInit {
   constructor(private readonly http: HttpClient) {}
 
   protected readonly title = 'Simple Users Table';
   protected readonly helloMessage = signal('');
   protected readonly errorMessage = signal('');
+  protected readonly users = signal<UserRow[]>([]);
+  protected readonly loading = signal(false);
 
-  protected readonly users: UserRow[] = [
-    { id: 1, name: 'Alice Johnson', role: 'Admin', email: 'alice@example.com' },
-    { id: 2, name: 'David Smith', role: 'Editor', email: 'david@example.com' },
-    { id: 3, name: 'Maria Garcia', role: 'Viewer', email: 'maria@example.com' },
-    { id: 4, name: 'Liam Brown', role: 'Editor', email: 'liam@example.com' }
-  ];
+  ngOnInit(): void {
+    this.loadPersons();
+  }
+
+  private loadPersons(): void {
+    this.loading.set(true);
+    this.errorMessage.set('');
+    this.http.get<PersonsResponse>('/api/databricks/unity-catalog/persons').subscribe({
+      next: (response) => {
+        this.users.set(response.rows);
+        this.loading.set(false);
+      },
+      error: () => {
+        this.errorMessage.set('Could not load persons from Databricks.');
+        this.loading.set(false);
+      },
+    });
+  }
 
   protected getHelloMessage(): void {
     this.errorMessage.set('');
@@ -48,13 +67,13 @@ export class App {
           },
           error: (error) => {
             console.error('Failed to fetch Databricks current user details:', error);
-          }
+          },
         });
       },
       error: () => {
         this.helloMessage.set('');
         this.errorMessage.set('Could not load message from server.');
-      }
+      },
     });
   }
 }

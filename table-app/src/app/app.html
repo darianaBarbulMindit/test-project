@@ -3,31 +3,33 @@
   <p class="subtitle">Example of a simple Angular page with a table.</p>
 
   <div class="table-wrapper">
-    <table>
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Name</th>
-          <th>Role</th>
-          <th>Email</th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (user of users; track user.id) {
+    @if (loading()) {
+      <p>Loading persons...</p>
+    } @else {
+      <table>
+        <thead>
           <tr>
-            <td>{{ user.id }}</td>
-            <td>{{ user.name }}</td>
-            <td>{{ user.role }}</td>
-            <td>{{ user.email }}</td>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Role</th>
+            <th>Email</th>
           </tr>
-        }
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          @for (user of users(); track user.id) {
+            <tr>
+              <td>{{ user.id }}</td>
+              <td>{{ user.name }}</td>
+              <td>{{ user.role }}</td>
+              <td>{{ user.email }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
   </div>
 
-  <button class="hello-button" type="button" (click)="getHelloMessage()">
-    Call Hello API
-  </button>
+  <button class="hello-button" type="button" (click)="getHelloMessage()">Call Hello API</button>
 
   @if (helloMessage()) {
     <p class="response-message">{{ helloMessage() }}</p>
