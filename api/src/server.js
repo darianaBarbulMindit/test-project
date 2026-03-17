@@ -273,7 +273,7 @@ app.get('/api/databricks/unity-catalog/catalogs', async (req, res) => {
   try {
     const host = getDatabricksHost();
     const httpPath = getDatabricksWarehouseHttpPath();
-    const tokenInfo = getSqlToken(req);
+    const tokenInfo = await getSqlToken(req);
 
     if (!host || !httpPath || !tokenInfo.token) {
       res.status(400).json({
@@ -305,7 +305,7 @@ app.post('/api/databricks/query', async (req, res) => {
   try {
     const host = getDatabricksHost();
     const httpPath = getDatabricksWarehouseHttpPath();
-    const tokenInfo = getSqlToken(req);
+    const tokenInfo = await getSqlToken(req);
     const statement = req.body?.statement;
 
     if (!host || !httpPath || !tokenInfo.token) {
@@ -345,7 +345,7 @@ app.get('/api/databricks/unity-catalog/persons', async (req, res) => {
   try {
     const host = getDatabricksHost();
     const httpPath = getDatabricksWarehouseHttpPath();
-    const tokenInfo = getSqlToken(req);
+    const tokenInfo = await getSqlToken(req);
 
     if (!host || !httpPath || !tokenInfo.token) {
       res.status(400).json({
