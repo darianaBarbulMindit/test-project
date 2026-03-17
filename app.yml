@@ -6,7 +6,7 @@ oauth:
     - all-apis
 
 resources:
-  - name: trigger-job
+  - name: job
     job:
       id: "538667917154866"
       permission: CAN_MANAGE_RUN
