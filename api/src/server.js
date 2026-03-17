@@ -6,7 +6,7 @@ const {
   getDatabricksWarehouseHttpPath,
   getDatabricksToken,
   getSqlToken,
-executeSqlStatement,
+  executeSqlStatement,
   fetchCurrentUserFromDatabricks,
   runDatabricksJob,
 } = require('./databricks');
@@ -27,9 +27,11 @@ app.get('/health', (req, res) => {
 
 app.get('/api/debug/env', (_req, res) => {
   const databricksEnv = Object.fromEntries(
-    Object.entries(process.env).filter(([key]) =>
-      key.toUpperCase().includes('DATABRICKS') || key.toUpperCase().includes('WAREHOUSE')
-    )
+    Object.entries(process.env).filter(
+      ([key]) =>
+        key.toUpperCase().includes('DATABRICKS') ||
+        key.toUpperCase().includes('WAREHOUSE'),
+    ),
   );
   res.json(databricksEnv);
 });

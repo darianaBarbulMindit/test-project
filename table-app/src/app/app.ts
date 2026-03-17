@@ -36,6 +36,10 @@ export class App implements OnInit {
   protected readonly errorMessage = signal('');
   protected readonly users = signal<UserRow[]>([]);
   protected readonly loading = signal(false);
+  protected readonly jobRunning = signal(false);
+  protected readonly jobMessage = signal('');
+
+  private readonly JOB_ID = 538667917154866;
 
   ngOnInit(): void {
     this.loadPersons();
@@ -53,6 +57,22 @@ export class App implements OnInit {
         console.log('Error loading persons from Databricks:', error);
         this.errorMessage.set('Could not load persons from Databricks.');
         this.loading.set(false);
+      },
+    });
+  }
+
+  protected runJob(): void {
+    this.jobMessage.set('');
+    this.errorMessage.set('');
+    this.jobRunning.set(true);
+    this.http.post<{ run_id: number }>('/api/databricks/jobs/run', { job_id: this.JOB_ID }).subscribe({
+      next: (response) => {
+        this.jobMessage.set(`Job started successfully. Run ID: ${response.run_id}`);
+        this.jobRunning.set(false);
+      },
+      error: () => {
+        this.errorMessage.set('Failed to trigger the Databricks job.');
+        this.jobRunning.set(false);
       },
     });
   }

@@ -49,8 +49,14 @@ tbody tr:last-child td {
   border-bottom: none;
 }
 
-.hello-button {
+.button-row {
+  display: flex;
+  gap: 10px;
   margin-top: 16px;
+}
+
+.hello-button {
+  margin-top: 0;
   padding: 10px 14px;
   border: 1px solid #2563eb;
   border-radius: 8px;
@@ -62,6 +68,26 @@ tbody tr:last-child td {
 
 .hello-button:hover {
   background: #1d4ed8;
+}
+
+.run-job-button {
+  margin-top: 0;
+  padding: 10px 14px;
+  border: 1px solid #16a34a;
+  border-radius: 8px;
+  background: #16a34a;
+  color: #ffffff;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.run-job-button:hover:not(:disabled) {
+  background: #15803d;
+}
+
+.run-job-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .response-message,

@@ -29,10 +29,19 @@
     }
   </div>
 
-  <button class="hello-button" type="button" (click)="getHelloMessage()">Call Hello API</button>
+  <div class="button-row">
+    <button class="hello-button" type="button" (click)="getHelloMessage()">Call Hello API</button>
+    <button class="run-job-button" type="button" (click)="runJob()" [disabled]="jobRunning()">
+      {{ jobRunning() ? 'Running...' : 'Run Databricks Job' }}
+    </button>
+  </div>
 
   @if (helloMessage()) {
     <p class="response-message">{{ helloMessage() }}</p>
+  }
+
+  @if (jobMessage()) {
+    <p class="response-message">{{ jobMessage() }}</p>
   }
 
   @if (errorMessage()) {
