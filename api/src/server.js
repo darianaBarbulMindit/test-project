@@ -87,7 +87,13 @@ async function executeSqlStatement({ host, httpPath, token, statement }) {
     }),
   });
 
-  const result = await response.json();
+  const text = await response.text();
+  let result;
+  try {
+    result = JSON.parse(text);
+  } catch {
+    throw new Error(`SQL execution failed (${response.status}): ${text}`);
+  }
   if (!response.ok || result.status?.state === 'FAILED') {
     throw new Error(result.status?.error?.message || `SQL execution failed: ${response.status}`);
   }
