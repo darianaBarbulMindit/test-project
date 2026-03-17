@@ -3,7 +3,13 @@ command: ['node', 'api/src/server.js']
 oauth:
   scopes:
     - sql
-    - jobs
+    - all-apis
+
+resources:
+  - name: trigger-job
+    job:
+      id: "538667917154866"
+      permission: CAN_MANAGE_RUN
 
 env:
   - name: DATABRICKS_WAREHOUSE_ID
