@@ -1,5 +1,9 @@
 command: ['node', 'api/src/server.js']
 
+oauth:
+  scopes:
+    - sql
+
 env:
   - name: DATABRICKS_WAREHOUSE_ID
     valueFrom: sql-warehouse

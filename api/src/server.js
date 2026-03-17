@@ -92,14 +92,17 @@ async function getSqlToken(req) {
     return { token: process.env.DATABRICKS_TOKEN, source: 'DATABRICKS_TOKEN' };
   }
 
+  const forwarded = getDatabricksToken(req);
+  if (forwarded.token) return forwarded;
+
   try {
     const spToken = await getServicePrincipalToken();
     if (spToken) return { token: spToken, source: 'client_credentials' };
   } catch (err) {
-    console.warn('Service principal token fetch failed, falling back to forwarded token:', err.message);
+    console.warn('Service principal token fetch failed:', err.message);
   }
 
-  return getDatabricksToken(req);
+  return { token: '', source: null };
 }
 
 function isAllowedReadOnlyStatement(statement) {
