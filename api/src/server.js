@@ -46,6 +46,62 @@ function getDatabricksToken(req) {
   return { token: '', source: null };
 }
 
+let _spTokenCache = null;
+
+async function getServicePrincipalToken() {
+  const clientId = process.env.DATABRICKS_CLIENT_ID;
+  const clientSecret = process.env.DATABRICKS_CLIENT_SECRET;
+  const host = getDatabricksHost();
+
+  if (!clientId || !clientSecret || !host) return null;
+
+  const now = Date.now();
+  if (_spTokenCache && _spTokenCache.expiresAt > now + 60_000) {
+    return _spTokenCache.token;
+  }
+
+  const response = await fetch(`https://${host}/oidc/v1/token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'client_credentials',
+      client_id: clientId,
+      client_secret: clientSecret,
+      scope: 'all-apis',
+    }),
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Failed to obtain service principal token (${response.status}): ${text}`);
+  }
+
+  const data = await response.json();
+  _spTokenCache = {
+    token: data.access_token,
+    expiresAt: now + (data.expires_in ?? 3600) * 1000,
+  };
+  return _spTokenCache.token;
+}
+
+async function getSqlToken(req) {
+  if (
+    typeof process.env.DATABRICKS_TOKEN === 'string' &&
+    process.env.DATABRICKS_TOKEN.length > 0
+  ) {
+    return { token: process.env.DATABRICKS_TOKEN, source: 'DATABRICKS_TOKEN' };
+  }
+
+  try {
+    const spToken = await getServicePrincipalToken();
+    if (spToken) return { token: spToken, source: 'client_credentials' };
+  } catch (err) {
+    console.warn('Service principal token fetch failed, falling back to forwarded token:', err.message);
+  }
+
+  return getDatabricksToken(req);
+}
+
 function isAllowedReadOnlyStatement(statement) {
   if (typeof statement !== 'string') {
     return false;
@@ -217,7 +273,7 @@ app.get('/api/databricks/unity-catalog/catalogs', async (req, res) => {
   try {
     const host = getDatabricksHost();
     const httpPath = getDatabricksWarehouseHttpPath();
-    const tokenInfo = getDatabricksToken(req);
+    const tokenInfo = getSqlToken(req);
 
     if (!host || !httpPath || !tokenInfo.token) {
       res.status(400).json({
@@ -249,7 +305,7 @@ app.post('/api/databricks/query', async (req, res) => {
   try {
     const host = getDatabricksHost();
     const httpPath = getDatabricksWarehouseHttpPath();
-    const tokenInfo = getDatabricksToken(req);
+    const tokenInfo = getSqlToken(req);
     const statement = req.body?.statement;
 
     if (!host || !httpPath || !tokenInfo.token) {
@@ -289,7 +345,7 @@ app.get('/api/databricks/unity-catalog/persons', async (req, res) => {
   try {
     const host = getDatabricksHost();
     const httpPath = getDatabricksWarehouseHttpPath();
-    const tokenInfo = getDatabricksToken(req);
+    const tokenInfo = getSqlToken(req);
 
     if (!host || !httpPath || !tokenInfo.token) {
       res.status(400).json({
