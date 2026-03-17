@@ -59,7 +59,9 @@ async function getServicePrincipalToken() {
 
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(`Failed to obtain service principal token (${response.status}): ${text}`);
+    throw new Error(
+      `Failed to obtain service principal token (${response.status}): ${text}`,
+    );
   }
 
   const data = await response.json();
@@ -71,13 +73,6 @@ async function getServicePrincipalToken() {
 }
 
 async function getSqlToken(req) {
-  if (
-    typeof process.env.DATABRICKS_TOKEN === 'string' &&
-    process.env.DATABRICKS_TOKEN.length > 0
-  ) {
-    return { token: process.env.DATABRICKS_TOKEN, source: 'DATABRICKS_TOKEN' };
-  }
-
   const forwarded = getDatabricksToken(req);
   if (forwarded.token) return forwarded;
 
@@ -89,30 +84,6 @@ async function getSqlToken(req) {
   }
 
   return { token: '', source: null };
-}
-
-function isAllowedReadOnlyStatement(statement) {
-  if (typeof statement !== 'string') {
-    return false;
-  }
-
-  const normalized = statement.trim().replace(/;+\s*$/, '');
-  if (normalized.length === 0) {
-    return false;
-  }
-
-  if (normalized.includes(';')) {
-    return false;
-  }
-
-  const upper = normalized.toUpperCase();
-  return (
-    upper.startsWith('SELECT ') ||
-    upper.startsWith('WITH ') ||
-    upper.startsWith('SHOW ') ||
-    upper.startsWith('DESCRIBE ') ||
-    upper.startsWith('EXPLAIN ')
-  );
 }
 
 async function executeSqlStatement({ host, httpPath, token, statement }) {
@@ -140,13 +111,16 @@ async function executeSqlStatement({ host, httpPath, token, statement }) {
     throw new Error(`SQL execution failed (${response.status}): ${text}`);
   }
   if (!response.ok || result.status?.state === 'FAILED') {
-    throw new Error(result.status?.error?.message || `SQL execution failed: ${response.status}`);
+    throw new Error(
+      result.status?.error?.message ||
+        `SQL execution failed: ${response.status}`,
+    );
   }
 
   const cols = result.manifest?.schema?.columns ?? [];
   const dataArray = result.result?.data_array ?? [];
-  return dataArray.map(row =>
-    Object.fromEntries(row.map((val, i) => [cols[i].name, val]))
+  return dataArray.map((row) =>
+    Object.fromEntries(row.map((val, i) => [cols[i].name, val])),
   );
 }
 
@@ -197,7 +171,6 @@ module.exports = {
   getDatabricksWarehouseHttpPath,
   getDatabricksToken,
   getSqlToken,
-  isAllowedReadOnlyStatement,
   executeSqlStatement,
   fetchCurrentUserFromDatabricks,
   runDatabricksJob,
