@@ -3,6 +3,7 @@ command: ['node', 'api/src/server.js']
 oauth:
   scopes:
     - sql
+    - jobs
 
 env:
   - name: DATABRICKS_WAREHOUSE_ID

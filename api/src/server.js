@@ -6,7 +6,6 @@ const {
   getDatabricksWarehouseHttpPath,
   getDatabricksToken,
   getSqlToken,
-  getServicePrincipalToken,
   executeSqlStatement,
   fetchCurrentUserFromDatabricks,
   runDatabricksJob,
@@ -171,20 +170,7 @@ app.post('/api/databricks/jobs/run', async (req, res) => {
     const host = getDatabricksHost();
     const jobId = req.body?.job_id;
 
-    // Prefer service principal token (has all-apis scope needed for jobs).
-    // Fall back to forwarded user token if SP is not configured.
-    let tokenInfo;
-    try {
-      const spToken = await getServicePrincipalToken();
-      if (spToken) {
-        tokenInfo = { token: spToken, source: 'client_credentials' };
-      }
-    } catch (err) {
-      console.warn('Service principal token fetch failed, falling back to forwarded token:', err.message);
-    }
-    if (!tokenInfo) {
-      tokenInfo = getDatabricksToken(req);
-    }
+    const tokenInfo = getDatabricksToken(req);
 
     if (!host || !tokenInfo.token) {
       res.status(400).json({
