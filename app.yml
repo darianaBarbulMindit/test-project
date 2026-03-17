@@ -2,4 +2,4 @@ command: ['node', 'api/src/server.js']
 
 env:
   - name: DATABRICKS_HTTP_PATH
-    valueFrom: sql-warehouse
+    valueFrom: sql-warehouse.http_path
