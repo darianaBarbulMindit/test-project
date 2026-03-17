@@ -1,7 +1,6 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
-const { DBSQLClient } = require('@databricks/sql');
 
 const app = express();
 app.use(express.json({ limit: '1mb' }));
@@ -72,33 +71,32 @@ function isAllowedReadOnlyStatement(statement) {
 }
 
 async function executeSqlStatement({ host, httpPath, token, statement }) {
-  const client = new DBSQLClient();
-  let session = null;
-  let operation = null;
+  const warehouseId = httpPath.split('/').pop();
 
-  try {
-    await client.connect({
-      host,
-      path: httpPath,
-      token,
-    });
+  const response = await fetch(`https://${host}/api/2.0/sql/statements`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      statement,
+      warehouse_id: warehouseId,
+      wait_timeout: '10s',
+      disposition: 'INLINE',
+    }),
+  });
 
-    session = await client.openSession();
-    operation = await session.executeStatement(statement, {
-      runAsync: false,
-      maxRows: 1000,
-    });
-    const rows = await operation.fetchAll();
-    return rows;
-  } finally {
-    if (operation) {
-      await operation.close();
-    }
-    if (session) {
-      await session.close();
-    }
-    await client.close();
+  const result = await response.json();
+  if (!response.ok || result.status?.state === 'FAILED') {
+    throw new Error(result.status?.error?.message || `SQL execution failed: ${response.status}`);
   }
+
+  const cols = result.manifest?.schema?.columns ?? [];
+  const dataArray = result.result?.data_array ?? [];
+  return dataArray.map(row =>
+    Object.fromEntries(row.map((val, i) => [cols[i].name, val]))
+  );
 }
 
 async function fetchCurrentUserFromDatabricks(host, accessToken) {
