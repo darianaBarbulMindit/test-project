@@ -44,6 +44,10 @@
     <p class="response-message">{{ jobMessage() }}</p>
   }
 
+  @if (jobStatus()) {
+    <p class="response-message">{{ jobStatus() }}</p>
+  }
+
   @if (errorMessage()) {
     <p class="response-error">{{ errorMessage() }}</p>
   }

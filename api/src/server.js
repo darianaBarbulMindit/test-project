@@ -9,6 +9,7 @@ const {
   executeSqlStatement,
   fetchCurrentUserFromDatabricks,
   runDatabricksJob,
+  getDatabricksJobRunStatus,
 } = require('./databricks');
 
 const app = express();
@@ -170,8 +171,6 @@ app.post('/api/databricks/jobs/run', async (req, res) => {
     const host = getDatabricksHost();
     const jobId = req.body?.job_id;
 
-    console.log('[SP Token] host:', host || 'MISSING');
-
     // Job runs require broader permissions than the user's forwarded OAuth token
     // provides. Use the service principal (M2M) token, or fall back to a PAT
     // set in DATABRICKS_TOKEN. Never use the forwarded user token here.
@@ -210,6 +209,34 @@ app.post('/api/databricks/jobs/run', async (req, res) => {
       ...result.payload,
       tokenSource: tokenInfo.source,
     });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/databricks/jobs/run/:runId/status', async (req, res) => {
+  try {
+    const host = getDatabricksHost();
+    const { runId } = req.params;
+
+    let tokenInfo = { token: '', source: null };
+    try {
+      const spToken = await getServicePrincipalToken();
+      if (spToken) tokenInfo = { token: spToken, source: 'client_credentials' };
+    } catch (err) {
+      console.warn('Service principal token fetch failed:', err.message);
+    }
+    if (!tokenInfo.token && process.env.DATABRICKS_TOKEN) {
+      tokenInfo = { token: process.env.DATABRICKS_TOKEN, source: 'DATABRICKS_TOKEN' };
+    }
+
+    if (!host || !tokenInfo.token) {
+      res.status(400).json({ error: 'Missing Databricks configuration.' });
+      return;
+    }
+
+    const status = await getDatabricksJobRunStatus(host, tokenInfo.token, runId);
+    res.json(status);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

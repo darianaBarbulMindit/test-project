@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 
 type UserRow = {
@@ -21,6 +21,16 @@ type PersonsResponse = {
   rowCount: number;
 };
 
+type JobRunStatus = {
+  state: {
+    life_cycle_state: string;
+    result_state?: string;
+    state_message?: string;
+  };
+};
+
+const TERMINAL_STATES = ['TERMINATED', 'SKIPPED', 'INTERNAL_ERROR'];
+
 @Component({
   selector: 'app-root',
   imports: [],
@@ -28,7 +38,7 @@ type PersonsResponse = {
   styleUrl: './app.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class App implements OnInit {
+export class App implements OnInit, OnDestroy {
   constructor(private readonly http: HttpClient) {}
 
   protected readonly title = 'Simple Users Table';
@@ -38,11 +48,44 @@ export class App implements OnInit {
   protected readonly loading = signal(false);
   protected readonly jobRunning = signal(false);
   protected readonly jobMessage = signal('');
+  protected readonly jobStatus = signal('');
 
   private readonly JOB_ID = 538667917154866;
+  private pollInterval: ReturnType<typeof setInterval> | null = null;
 
   ngOnInit(): void {
     this.loadPersons();
+  }
+
+  ngOnDestroy(): void {
+    this.stopPolling();
+  }
+
+  private stopPolling(): void {
+    if (this.pollInterval !== null) {
+      clearInterval(this.pollInterval);
+      this.pollInterval = null;
+    }
+  }
+
+  private pollJobStatus(runId: number): void {
+    this.pollInterval = setInterval(() => {
+      this.http.get<JobRunStatus>(`/api/databricks/jobs/run/${runId}/status`).subscribe({
+        next: (response) => {
+          const { life_cycle_state, result_state } = response.state;
+          this.jobStatus.set(`Status: ${life_cycle_state}${result_state ? ' — ' + result_state : ''}`);
+
+          if (TERMINAL_STATES.includes(life_cycle_state)) {
+            this.stopPolling();
+            this.jobRunning.set(false);
+          }
+        },
+        error: () => {
+          this.stopPolling();
+          this.jobRunning.set(false);
+        },
+      });
+    }, 5000);
   }
 
   private loadPersons(): void {
@@ -63,12 +106,13 @@ export class App implements OnInit {
 
   protected runJob(): void {
     this.jobMessage.set('');
+    this.jobStatus.set('');
     this.errorMessage.set('');
     this.jobRunning.set(true);
     this.http.post<{ run_id: number }>('/api/databricks/jobs/run', { job_id: this.JOB_ID }).subscribe({
       next: (response) => {
-        this.jobMessage.set(`Job started successfully. Run ID: ${response.run_id}`);
-        this.jobRunning.set(false);
+        this.jobMessage.set(`Job started. Run ID: ${response.run_id}`);
+        this.pollJobStatus(response.run_id);
       },
       error: () => {
         this.errorMessage.set('Failed to trigger the Databricks job.');

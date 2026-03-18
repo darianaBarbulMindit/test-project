@@ -147,6 +147,18 @@ async function fetchCurrentUserFromDatabricks(host, accessToken) {
   );
 }
 
+async function getDatabricksJobRunStatus(host, accessToken, runId) {
+  const endpointPath = `/api/2.0/jobs/runs/get?run_id=${runId}`;
+  const response = await fetch(`https://${host}${endpointPath}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+
+  if (response.ok) return response.json();
+
+  const body = await response.text();
+  throw new Error(`Databricks job status failed: ${endpointPath} -> ${response.status} ${body}`);
+}
+
 async function runDatabricksJob(host, accessToken, jobId) {
   const endpointPath = '/api/2.0/jobs/run-now';
   const response = await fetch(`https://${host}${endpointPath}`, {
@@ -177,5 +189,6 @@ module.exports = {
   getSqlToken,
   executeSqlStatement,
   fetchCurrentUserFromDatabricks,
+  getDatabricksJobRunStatus,
   runDatabricksJob,
 };
