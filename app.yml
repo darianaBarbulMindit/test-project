@@ -3,7 +3,7 @@ command: ['node', 'api/src/server.js']
 oauth:
   scopes:
     - sql
-    - all-apis
+    - job
 
 resources:
   - name: job
