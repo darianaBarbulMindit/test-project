@@ -4,8 +4,8 @@ const path = require('path');
 const {
   getDatabricksHost,
   getDatabricksWarehouseHttpPath,
-  getDatabricksToken,
   getSqlToken,
+  getServicePrincipalToken,
   executeSqlStatement,
   fetchCurrentUserFromDatabricks,
   runDatabricksJob,
@@ -170,12 +170,24 @@ app.post('/api/databricks/jobs/run', async (req, res) => {
     const host = getDatabricksHost();
     const jobId = req.body?.job_id;
 
-    const tokenInfo = getDatabricksToken(req);
+    // Job runs require broader permissions than the user's forwarded OAuth token
+    // provides. Use the service principal (M2M) token, or fall back to a PAT
+    // set in DATABRICKS_TOKEN. Never use the forwarded user token here.
+    let tokenInfo = { token: '', source: null };
+    try {
+      const spToken = await getServicePrincipalToken();
+      if (spToken) tokenInfo = { token: spToken, source: 'client_credentials' };
+    } catch (err) {
+      console.warn('Service principal token fetch failed:', err.message);
+    }
+    if (!tokenInfo.token && process.env.DATABRICKS_TOKEN) {
+      tokenInfo = { token: process.env.DATABRICKS_TOKEN, source: 'DATABRICKS_TOKEN' };
+    }
 
     if (!host || !tokenInfo.token) {
       res.status(400).json({
         error:
-          'Missing Databricks configuration. Required: DATABRICKS_HOST and token (x-forwarded-access-token or DATABRICKS_TOKEN).',
+          'Missing Databricks configuration for job runs. Required: DATABRICKS_HOST and either service principal credentials (DATABRICKS_CLIENT_ID + DATABRICKS_CLIENT_SECRET) or a PAT (DATABRICKS_TOKEN).',
       });
       return;
     }
