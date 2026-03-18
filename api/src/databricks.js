@@ -173,6 +173,7 @@ module.exports = {
   getDatabricksHost,
   getDatabricksWarehouseHttpPath,
   getDatabricksToken,
+  getServicePrincipalToken,
   getSqlToken,
   executeSqlStatement,
   fetchCurrentUserFromDatabricks,
