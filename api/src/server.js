@@ -170,6 +170,8 @@ app.post('/api/databricks/jobs/run', async (req, res) => {
     const host = getDatabricksHost();
     const jobId = req.body?.job_id;
 
+    console.log('[SP Token] host:', host || 'MISSING');
+
     // Job runs require broader permissions than the user's forwarded OAuth token
     // provides. Use the service principal (M2M) token, or fall back to a PAT
     // set in DATABRICKS_TOKEN. Never use the forwarded user token here.
@@ -181,7 +183,10 @@ app.post('/api/databricks/jobs/run', async (req, res) => {
       console.warn('Service principal token fetch failed:', err.message);
     }
     if (!tokenInfo.token && process.env.DATABRICKS_TOKEN) {
-      tokenInfo = { token: process.env.DATABRICKS_TOKEN, source: 'DATABRICKS_TOKEN' };
+      tokenInfo = {
+        token: process.env.DATABRICKS_TOKEN,
+        source: 'DATABRICKS_TOKEN',
+      };
     }
 
     if (!host || !tokenInfo.token) {
