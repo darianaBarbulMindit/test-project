@@ -39,6 +39,9 @@ async function getServicePrincipalToken() {
   const clientSecret = process.env.DATABRICKS_SP_CLIENT_SECRET || process.env.DATABRICKS_CLIENT_SECRET;
   const host = getDatabricksHost();
 
+  console.log('[SP Token] clientId:', clientId ? 'set' : 'MISSING');
+  console.log('[SP Token] clientSecret:', clientSecret ? 'set' : 'MISSING');
+  console.log('[SP Token] host:', host || 'MISSING');
   if (!clientId || !clientSecret || !host) return null;
 
   const now = Date.now();
