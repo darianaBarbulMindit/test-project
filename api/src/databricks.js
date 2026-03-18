@@ -35,8 +35,8 @@ function getDatabricksToken(req) {
 let _spTokenCache = null;
 
 async function getServicePrincipalToken() {
-  const clientId = process.env.DATABRICKS_CLIENT_ID;
-  const clientSecret = process.env.DATABRICKS_CLIENT_SECRET;
+  const clientId = process.env.DATABRICKS_SP_CLIENT_ID || process.env.DATABRICKS_CLIENT_ID;
+  const clientSecret = process.env.DATABRICKS_SP_CLIENT_SECRET || process.env.DATABRICKS_CLIENT_SECRET;
   const host = getDatabricksHost();
 
   if (!clientId || !clientSecret || !host) return null;

@@ -18,7 +18,7 @@ env:
     value: 'wizz-test'
   - name: 'DATABRICKS_SCHEMA'
     value: 'test_schema'
-  - name: DATABRICKS_CLIENT_ID
+  - name: DATABRICKS_SP_CLIENT_ID
     value: '093cf9e2-b737-495f-9671-561e24a52ab3'
-  - name: DATABRICKS_CLIENT_SECRET
+  - name: DATABRICKS_SP_CLIENT_SECRET
     value: 'dosec461cfdbc26ed5911fc342a0f2f5b6ef'
